@@ -1,10 +1,19 @@
+{% extends 'base.html' %}
 
-{% for item in object_list %} <!--object_list-->
-    
-    {{ item.title }}
+{% block title %}書籍一覧{% endblock %}
+{% block h1 %} 書籍一覧{% endblock %}
 
-    {{ item.text }}
+{% block content %}
+    {% for item in object_list %}
+    <div class="card text-center">
+        <h5 class="card-header">{{item.title}}</h5>
+        <div class="card-body">
+          <p class="card-text">{{item.text}}</p>
+          <a href="{% url 'detail-book' item.pk %}" class="btn btn-primary">詳細</a>
+        <h6>CATEGORY:{{item.category}}</h6>
+        <p></p>
+        </div>
+    </div>
+    {% endfor %}
+{% endblock content %}
 
-    {{ item.category }}
-
-{% endfor %}

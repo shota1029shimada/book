@@ -3,5 +3,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('',include('book.urls')),#bookアプリのurl.pyに移動
+    path('book/',include('book.urls')),#bookアプリのurl.pyに移動
 ]
