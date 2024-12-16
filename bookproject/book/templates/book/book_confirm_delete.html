@@ -3,9 +3,10 @@
 {% block title %}書籍削除{% endblock %}
 
 {% block content %}
+<h2>「{{ object.title }}」を削除してもよろしいですか？</h2>
+<form method="post">
     <form method="post">
       {% csrf_token %}
-        {{form.as_p}}
-        <button type="submit">{{ object.title }}を削除する</button>
+        <button type="submit" class="btn btn-succes mb-2">アカウント作成</button>
     </form>
 {% endblock content %}
