@@ -9,10 +9,10 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import logout#追加
 from django.core.exceptions import PermissionDenied
-from django.db.models import Avg
 from django.core.paginator import Paginator
 from.consts import ITEM_PER_PAGE
-
+from .forms import SearchForm
+from django.db.models import Avg, Case, When, Value, IntegerField #def index_view(request):
 
 class ListBookView(LoginRequiredMixin,ListView):
     template_name='book/book_list.html'
@@ -54,26 +54,54 @@ class UpdateBookView(LoginRequiredMixin,UpdateView):
     def get_object(self,queryset=None):
         obj=super().get_object(queryset)
         if obj.user !=self.request.user:
+            print(obj.user)
+            print(self.request.user)
             raise PermissionDenied
         return obj
     
     def get_success_url(self):
-        return reverse('detail-book', kwargs={'pk':self.object.book.id})
+        return reverse('detail-book', kwargs={'pk':self.object.id})
     
 
 def index_view(request):
-    #print('index_view is called')
-    object_list = Book.objects.order_by('-id')
-    ranking_list=Book.objects.annotate(avg_rating=Avg('review__rate')).order_by('-avg_rating')
+    queryset = Book.objects.all()
 
-    paginator=Paginator(ranking_list, ITEM_PER_PAGE)
-    page_number=request.GET.get('page',1)
-    page_obj=paginator.page(page_number)
+    #検索機能
+    searchForm = SearchForm(request.GET)
+    if searchForm.is_valid():                       #フォームが有効な場合、
+        keyword = searchForm.cleaned_data['keyword']#キーワードを取得し、そのキーワードを含む本のリストを
+        queryset=Book.objects.filter(title__contains=keyword)# object_list に格納
+    # 平均評価の計算
+    queryset = queryset.annotate(avg_rating=Avg('review__rate'))
+    
+    #ソート機能
+    sort_option = request.GET.get('rate', '最新投稿順')
+    if sort_option == '最新投稿順':
+        queryset = queryset.order_by('-id')
+    elif sort_option == '古い投稿順':
+        queryset = queryset.order_by('id')
+    elif sort_option == '評価':
+        queryset = queryset.order_by('-avg_rating', '-id')
+    else:
+        queryset = queryset.order_by('-id')
 
+  #ページネーション
+    paginator = Paginator(queryset, ITEM_PER_PAGE)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.page(page_number)
+
+        
+    # テンプレートにはpage_objのみを渡す（ranking_listは不要）
+    context = {
+        'selected_option': sort_option,
+        'searchForm': searchForm,
+        'page_obj': page_obj,  # ページネーション済みのオブジェクト
+        'object_list': queryset,  # 追加: querysetをcontextに渡す
+    }
     return render(
-        request,
-        'book/index.html',
-        {'object_list':object_list, 'ranking_list':ranking_list,'pageobj':page_obj},)
+        request, 'book/index.html', context)
+        #'book/index.html',
+        #{'object_list':object_list, 'ranking_list':ranking_list,'page_obj':page_obj},)
 
 class CreateReviewView(LoginRequiredMixin,CreateView):
     model=Review
